@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Camera Timestamp Stamper</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Libraries -->
+  <script defer src="https://cdn.jsdelivr.net/npm/exifreader@4.33.1/dist/exif-reader.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <!-- App -->
+  <script defer src="app.js"></script>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Camera Timestamp Stamper</h1>
+
+    <section class="panel">
+      <label class="file">
+        <span>Select images</span>
+        <input id="files" type="file" accept="image/*" multiple />
+      </label>
+
+      <div class="row">
+        <label>
+          Timestamp source
+          <select id="tsSource">
+            <option value="exif" selected>EXIF DateTimeOriginal (fallback: file modified)</option>
+            <option value="modified">File modified date</option>
+            <option value="now">Current time (now)</option>
+          </select>
+        </label>
+
+        <label>
+          Format
+          <select id="outFormat">
+            <option value="same" selected>Same as input (PNG stays lossless; JPEG re-encodes)</option>
+            <option value="png">PNG (lossless)</option>
+            <option value="jpeg">JPEG (high quality)</option>
+          </select>
+        </label>
+
+        <label>
+          Timestamp style
+          <select id="tsStyle">
+            <option value="mmddyy" selected>MM/DD/YY HH:MM</option>
+            <option value="ddmmyy">DD/MM/YY HH:MM</option>
+            <option value="iso">YYYY-MM-DD HH:MM</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row">
+        <label>
+          Size (% of image width)
+          <input id="sizePct" type="number" min="1" max="12" step="0.5" value="4.5" />
+        </label>
+
+        <label>
+          Margin (% of image width)
+          <input id="marginPct" type="number" min="0" max="10" step="0.5" value="2.0" />
+        </label>
+
+        <label>
+          Orange color
+          <input id="orange" type="text" value="#ff8a00" />
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="process" disabled>Process</button>
+        <button id="downloadZip" disabled>Download ZIP</button>
+        <span id="status" class="status"></span>
+      </div>
+
+      <p class="note">
+        Privacy: images are processed locally in your browser. Nothing is uploaded.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Results</h2>
+      <div id="results" class="results"></div>
+    </section>
+  </main>
+</body>
+</html>
