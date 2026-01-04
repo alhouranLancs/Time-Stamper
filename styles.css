@@ -19,7 +19,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   position: fixed;
   right: 12px;
   bottom: 12px;
-  font-size: 32px;
+  font-size: 12px;
   opacity: 0.65;
   padding: 4px 8px;
   border-radius: 10px;

@@ -1,4 +1,4 @@
-const APP_VERSION = "v0.1.0"; // manually update this
+const APP_VERSION = "v2"; // manually update this
 document.getElementById("pageVersion").textContent = APP_VERSION;
 
 
