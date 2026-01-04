@@ -183,7 +183,7 @@ function drawTimestamp(ctx, w, h, text) {
   ctx.save();
 
   // “Digital camera-ish” look: monospace + strong contrast outline
-  ctx.font = `700 ${fontSize}px ui-monospace, Menlo, Consolas, Monaco, monospace`;
+  ctx.font = `${fontSize}px "VT323", ui-monospace, Menlo, Consolas, Monaco, monospace`;
   ctx.textBaseline = "alphabetic";
 
   const metrics = ctx.measureText(text);
@@ -250,6 +250,12 @@ function downloadBlob(blob, filename) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+async function ensureFontLoaded(family, px = 32) {
+  if (!document.fonts) return; // older browsers fallback
+  await document.fonts.load(`${px}px "${family}"`);
+  await document.fonts.ready;
+}
+
 
 /**
  * Create a canvas and apply EXIF orientation transforms.
@@ -353,6 +359,9 @@ stampOne = async function(file) {
 
   // Reset transform so (0,0) is top-left of final image for stamping
   resetForStamp();
+
+  await ensureFontLoaded("VT323", 48);
+
 
   drawTimestamp(ctx, canvas.width, canvas.height, stampText);
 
