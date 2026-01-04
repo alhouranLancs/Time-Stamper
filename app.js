@@ -1,4 +1,8 @@
-/* global ExifReader, JSZip */
+const APP_VERSION = "v0.1.0"; // manually update this
+document.getElementById("pageVersion").textContent = APP_VERSION;
+
+
+* global ExifReader, JSZip */
 
 const elFiles = document.getElementById("files");
 const elProcess = document.getElementById("process");
