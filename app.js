@@ -1,8 +1,8 @@
-const APP_VERSION = "v1.1.0"; // manually update this
+const APP_VERSION = "v0.1.0"; // manually update this
 document.getElementById("pageVersion").textContent = APP_VERSION;
 
 
-* global ExifReader, JSZip */
+/* global ExifReader, JSZip */
 
 const elFiles = document.getElementById("files");
 const elProcess = document.getElementById("process");
@@ -16,6 +16,16 @@ const elTsStyle = document.getElementById("tsStyle");
 const elSizePct = document.getElementById("sizePct");
 const elMarginPct = document.getElementById("marginPct");
 const elOrange = document.getElementById("orange");
+
+async function ensureStampFontLoaded() {
+  // Some older browsers may not support the Font Loading API; then we just fallback.
+  if (!document.fonts) return;
+
+  // Load the exact family name you used in the <link>.
+  // Include style/weight to avoid mismatches.
+  await document.fonts.load('normal 400 16px "VT323"');
+  await document.fonts.ready;
+}
 
 let processed = []; // { name, blob, url }
 
@@ -103,6 +113,8 @@ async function stampOne(file) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, drawW, drawH);
+  
+  await ensureStampFontLoaded();
 
   // Draw timestamp
   drawTimestamp(ctx, canvas.width, canvas.height, stampText);
@@ -187,7 +199,7 @@ function drawTimestamp(ctx, w, h, text) {
   ctx.save();
 
   // “Digital camera-ish” look: monospace + strong contrast outline
-  ctx.font = `${fontSize}px "VT323", ui-monospace, Menlo, Consolas, Monaco, monospace`;
+  ctx.font = `normal 400 ${fontSize}px "VT323", ui-monospace, Menlo, Consolas, Monaco, monospace`;
   ctx.textBaseline = "alphabetic";
 
   const metrics = ctx.measureText(text);
@@ -254,11 +266,8 @@ function downloadBlob(blob, filename) {
   a.remove();
   URL.revokeObjectURL(url);
 }
-async function ensureFontLoaded(family, px = 32) {
-  if (!document.fonts) return; // older browsers fallback
-  await document.fonts.load(`${px}px "${family}"`);
-  await document.fonts.ready;
-}
+
+
 
 
 /**
