@@ -26,6 +26,15 @@ async function ensureStampFontLoaded() {
   await document.fonts.load('normal 400 16px "VT323"');
   await document.fonts.ready;
 }
+async function ensureFontLoaded(family, px = 16) {
+  // If the browser doesn't support the Font Loading API, just fall back.
+  if (!document.fonts) return;
+
+  // Load the font and wait until it's ready before drawing to canvas.
+  await document.fonts.load(`normal 400 ${px}px "${family}"`);
+  await document.fonts.ready;
+}
+
 
 let processed = []; // { name, blob, url }
 
