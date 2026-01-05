@@ -147,6 +147,78 @@ const chosenWeight = elFontWeight.value;
 // (Some fonts won't “register” if you load at a tiny size only.)
 await ensureFontLoaded(chosenFont, 48, chosenWeight);
 
+drawTimestamp(ctx, canvas.width, canvas.height, stampText);
+
+
+  // Export
+  const { outType, outExt, jpegQuality } = pickOutputFormat(inType, elOutFormat.value);
+
+  const outBlob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Failed to encode output image."))),
+      outType,
+      jpegQuality
+    );
+  });
+
+  const outName = replaceExtension(file.name, outExt);
+  const outUrl = URL.createObjectURL(outBlob);
+
+  // Cleanup
+  bitmap.close?.();
+
+  return { name: outName, blob: outBlob, url: outUrl };
+}
+
+function pickTimestampDate(file, tags) {
+  const source = elTsSource.value;
+
+  if (source === "now") return new Date();
+  if (source === "modified") return new Date(file.lastModified);
+
+  // EXIF preferred
+  const exifStr =
+    tags?.exif?.DateTimeOriginal?.description ||
+    tags?.exif?.DateTimeOriginal?.value ||
+    tags?.exif?.DateTime?.description ||
+    tags?.exif?.DateTime?.value ||
+    null;
+
+  const parsed = exifStr ? parseExifDate(exifStr) : null;
+  return parsed || new Date(file.lastModified);
+}
+
+// Typical EXIF date is "YYYY:MM:DD HH:MM:SS"
+function parseExifDate(s) {
+  if (typeof s !== "string") return null;
+  const m = s.match(/^(\d{4})[:\-](\d{2})[:\-](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return null;
+  const [_, Y, M, D, h, min, sec] = m;
+  const dt = new Date(
+    Number(Y),
+    Number(M) - 1,
+    Number(D),
+    Number(h),
+    Number(min),
+    Number(sec || "0")
+  );
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function formatStamp(dt, style) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const YYYY = dt.getFullYear();
+  const YY = String(YYYY).slice(-2);
+  const MM = pad(dt.getMonth() + 1);
+  const DD = pad(dt.getDate());
+  const HH = pad(dt.getHours());
+  const mm = pad(dt.getMinutes());
+
+  if (style === "ddmmyy") return `${DD}/${MM}/${YY} ${HH}:${mm}`;
+  if (style === "iso") return `${YYYY}-${MM}-${DD} ${HH}:${mm}`;
+  return `${MM}/${DD}/${YY} ${HH}:${mm}`; // mmddyy
+}
+
 function drawTimestamp(ctx, w, h, text) {
   const sizePct = clamp(Number(elSizePct.value) || 4.5, 1, 12) / 100;
   const marginPct = clamp(Number(elMarginPct.value) || 2.0, 0, 10) / 100;
@@ -267,87 +339,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-
-function pickTimestampDate(file, tags) {
-  const source = elTsSource.value;
-
-  if (source === "now") return new Date();
-  if (source === "modified") return new Date(file.lastModified);
-
-  // EXIF preferred
-  const exifStr =
-    tags?.exif?.DateTimeOriginal?.description ||
-    tags?.exif?.DateTimeOriginal?.value ||
-    tags?.exif?.DateTime?.description ||
-    tags?.exif?.DateTime?.value ||
-    null;
-
-  const parsed = exifStr ? parseExifDate(exifStr) : null;
-  return parsed || new Date(file.lastModified);
-}
-
-// Typical EXIF date is "YYYY:MM:DD HH:MM:SS"
-function parseExifDate(s) {
-  if (typeof s !== "string") return null;
-  const m = s.match(/^(\d{4})[:\-](\d{2})[:\-](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
-  if (!m) return null;
-  const [_, Y, M, D, h, min, sec] = m;
-  const dt = new Date(
-    Number(Y),
-    Number(M) - 1,
-    Number(D),
-    Number(h),
-    Number(min),
-    Number(sec || "0")
-  );
-  return Number.isNaN(dt.getTime()) ? null : dt;
-}
-
-function formatStamp(dt, style) {
-  const pad = (n) => String(n).padStart(2, "0");
-  const YYYY = dt.getFullYear();
-  const YY = String(YYYY).slice(-2);
-  const MM = pad(dt.getMonth() + 1);
-  const DD = pad(dt.getDate());
-  const HH = pad(dt.getHours());
-  const mm = pad(dt.getMinutes());
-
-  if (style === "ddmmyy") return `${DD}/${MM}/${YY} ${HH}:${mm}`;
-  if (style === "iso") return `${YYYY}-${MM}-${DD} ${HH}:${mm}`;
-  return `${MM}/${DD}/${YY} ${HH}:${mm}`; // mmddyy
-}
-
-function drawTimestamp(ctx, w, h, text) {
-  const sizePct = clamp(Number(elSizePct.value) || 4.5, 1, 12) / 100;
-  const marginPct = clamp(Number(elMarginPct.value) || 2.0, 0, 10) / 100;
-
-  const fontSize = Math.max(12, Math.round(w * sizePct));
-  const margin = Math.round(w * marginPct);
-  const color = (elOrange.value || "#ff8a00").trim();
-
-  ctx.save();
-
-  // “Digital camera-ish” look: monospace + strong contrast outline
-  ctx.font = `normal 400 ${fontSize}px "VT323", ui-monospace, Menlo, Consolas, Monaco, monospace`;
-  ctx.textBaseline = "alphabetic";
-
-  const metrics = ctx.measureText(text);
-  const x = w - margin - metrics.width;
-  const y = h - margin;
-
-  // Dark outline
-  ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.12));
-  ctx.strokeStyle = "rgba(0,0,0,0.85)";
-  ctx.strokeText(text, x, y);
-
-  // Orange fill
-  ctx.fillStyle = color;
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = Math.max(1, Math.round(fontSize * 0.08));
-  ctx.fillText(text, x, y);
-
-  ctx.restore();
-}
 
 function pickOutputFormat(inType, choice) {
   const isJpeg = /image\/jpeg/i.test(inType) || /image\/jpg/i.test(inType);
