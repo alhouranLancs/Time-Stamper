@@ -1,4 +1,4 @@
-const APP_VERSION = "v2"; // manually update this
+const APP_VERSION = "v3"; // manually update this
 document.getElementById("pageVersion").textContent = APP_VERSION;
 
 
@@ -17,15 +17,32 @@ const elSizePct = document.getElementById("sizePct");
 const elMarginPct = document.getElementById("marginPct");
 const elOrange = document.getElementById("orange");
 
-async function ensureStampFontLoaded() {
-  // Some older browsers may not support the Font Loading API; then we just fallback.
+const elStampFont = document.getElementById("stampFont");
+const elFontWeight = document.getElementById("fontWeight");
+const elStampPos = document.getElementById("stampPos");
+
+const elOutlinePct = document.getElementById("outlinePct");
+const elFillAlpha = document.getElementById("fillAlpha");
+
+const elBgBox = document.getElementById("bgBox");
+const elBgAlpha = document.getElementById("bgAlpha");
+
+const elShadow = document.getElementById("shadow");
+const elShadowPct = document.getElementById("shadowPct");
+
+
+async function ensureFontLoaded(family, px = 32, weight = "400") {
   if (!document.fonts) return;
 
-  // Load the exact family name you used in the <link>.
-  // Include style/weight to avoid mismatches.
-  await document.fonts.load('normal 400 16px "VT323"');
+  // If the user selects "system", no need to wait on webfonts.
+  if (family === "system") return;
+
+  // Wait until the selected webfont is available before drawing to canvas.
+  await document.fonts.load(`normal ${weight} ${px}px "${family}"`);
   await document.fonts.ready;
 }
+
+
 async function ensureFontLoaded(family, px = 16) {
   // If the browser doesn't support the Font Loading API, just fall back.
   if (!document.fonts) return;
@@ -123,30 +140,133 @@ async function stampOne(file) {
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, drawW, drawH);
   
-  await ensureStampFontLoaded();
+const chosenFont = elStampFont.value;
+const chosenWeight = elFontWeight.value;
 
-  // Draw timestamp
-  drawTimestamp(ctx, canvas.width, canvas.height, stampText);
+// Use a representative px size so the font definitely loads.
+// (Some fonts won't “register” if you load at a tiny size only.)
+await ensureFontLoaded(chosenFont, 48, chosenWeight);
 
-  // Export
-  const { outType, outExt, jpegQuality } = pickOutputFormat(inType, elOutFormat.value);
+function drawTimestamp(ctx, w, h, text) {
+  const sizePct = clamp(Number(elSizePct.value) || 4.5, 1, 12) / 100;
+  const marginPct = clamp(Number(elMarginPct.value) || 2.0, 0, 10) / 100;
 
-  const outBlob = await new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("Failed to encode output image."))),
-      outType,
-      jpegQuality
-    );
-  });
+  const fontSize = Math.max(12, Math.round(w * sizePct));
+  const margin = Math.round(w * marginPct);
 
-  const outName = replaceExtension(file.name, outExt);
-  const outUrl = URL.createObjectURL(outBlob);
+  const color = (elOrange.value || "#ff8a00").trim();
+  const family = elStampFont.value;
+  const weight = elFontWeight.value;
 
-  // Cleanup
-  bitmap.close?.();
+  const outlinePct = clamp(Number(elOutlinePct.value) || 12, 0, 30) / 100;
+  const fillAlpha = clamp(Number(elFillAlpha.value) || 1, 0, 1);
 
-  return { name: outName, blob: outBlob, url: outUrl };
+  const bgOn = elBgBox.value === "on";
+  const bgAlpha = clamp(Number(elBgAlpha.value) || 0.35, 0, 1);
+
+  const shadowOn = elShadow.value === "on";
+  const shadowPct = clamp(Number(elShadowPct.value) || 8, 0, 30) / 100;
+
+  ctx.save();
+
+  // Set font
+  const fontFamily = family === "system"
+    ? 'ui-monospace, Menlo, Consolas, Monaco, monospace'
+    : `"${family}", ui-monospace, Menlo, Consolas, Monaco, monospace`;
+
+  ctx.font = `normal ${weight} ${fontSize}px ${fontFamily}`;
+  ctx.textBaseline = "alphabetic";
+
+  const metrics = ctx.measureText(text);
+  const textW = metrics.width;
+
+  // Approximate text height (canvas doesn't give true height reliably across browsers)
+  const textH = Math.round(fontSize * 1.05);
+  const padX = Math.round(fontSize * 0.35);
+  const padY = Math.round(fontSize * 0.25);
+
+  // Compute anchor by position
+  let x, y; // x,y are where fillText starts (baseline)
+  const pos = elStampPos.value;
+
+  if (pos === "br") {
+    x = w - margin - textW;
+    y = h - margin;
+  } else if (pos === "bl") {
+    x = margin;
+    y = h - margin;
+  } else if (pos === "tr") {
+    x = w - margin - textW;
+    y = margin + textH;
+  } else { // "tl"
+    x = margin;
+    y = margin + textH;
+  }
+
+  // Optional background box behind text
+  if (bgOn) {
+    // Background rect coordinates (top-left)
+    const rectX = x - padX;
+    const rectY = (y - textH) - padY;
+    const rectW = textW + padX * 2;
+    const rectH = textH + padY * 2;
+
+    ctx.fillStyle = `rgba(0,0,0,${bgAlpha})`;
+    roundRect(ctx, rectX, rectY, rectW, rectH, Math.round(fontSize * 0.2));
+    ctx.fill();
+  }
+
+  // Outline first (dark) for camera-like contrast
+  const outlineW = Math.max(0, Math.round(fontSize * outlinePct));
+  if (outlineW > 0) {
+    ctx.lineWidth = outlineW;
+    ctx.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx.strokeText(text, x, y);
+  }
+
+  // Shadow (subtle)
+  if (shadowOn) {
+    const blur = Math.max(0, Math.round(fontSize * shadowPct));
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur = blur;
+    ctx.shadowOffsetX = Math.max(0, Math.round(fontSize * shadowPct * 0.25));
+    ctx.shadowOffsetY = Math.max(0, Math.round(fontSize * shadowPct * 0.25));
+  } else {
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  // Orange fill
+  ctx.fillStyle = hexToRgba(color, fillAlpha);
+  ctx.fillText(text, x, y);
+
+  ctx.restore();
 }
+
+function roundRect(ctx, x, y, w, h, r) {
+  const radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+}
+
+function hexToRgba(hex, alpha) {
+  // Supports #rgb or #rrggbb
+  let h = hex.replace("#", "").trim();
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  if (h.length !== 6) return `rgba(255,138,0,${alpha})`;
+
+  const r = parseInt(h.slice(0,2), 16);
+  const g = parseInt(h.slice(2,4), 16);
+  const b = parseInt(h.slice(4,6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 
 function pickTimestampDate(file, tags) {
   const source = elTsSource.value;

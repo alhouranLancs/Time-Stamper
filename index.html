@@ -7,9 +7,13 @@
     <title>Camera Timestamp Stamper</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- App -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Press+Start+2P&family=Orbitron:wght@400;700&display=swap"
+  rel="stylesheet"
+/>
+
     <!-- Libraries -->
     <script defer src="https://cdn.jsdelivr.net/npm/exifreader@4.33.1/dist/exif-reader.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -54,6 +58,77 @@
                         <option value="iso">YYYY-MM-DD HH:MM</option>
                     </select>
                 </label>
+                <div class="row">
+  <label>
+    Stamp font
+    <select id="stampFont">
+      <option value="VT323" selected>VT323 (OSD)</option>
+      <option value="Share Tech Mono">Share Tech Mono (mono)</option>
+      <option value="Press Start 2P">Press Start 2P (pixel)</option>
+      <option value="Orbitron">Orbitron (digital)</option>
+      <option value="system">System monospace</option>
+    </select>
+  </label>
+
+  <label>
+    Font weight
+    <select id="fontWeight">
+      <option value="400" selected>Normal</option>
+      <option value="700">Bold</option>
+    </select>
+  </label>
+
+  <label>
+    Position
+    <select id="stampPos">
+      <option value="br" selected>Bottom-right</option>
+      <option value="bl">Bottom-left</option>
+      <option value="tr">Top-right</option>
+      <option value="tl">Top-left</option>
+    </select>
+  </label>
+</div>
+
+<div class="row">
+  <label>
+    Outline thickness (relative)
+    <input id="outlinePct" type="number" min="0" max="30" step="1" value="12" />
+  </label>
+
+  <label>
+    Fill opacity (0–1)
+    <input id="fillAlpha" type="number" min="0" max="1" step="0.05" value="1" />
+  </label>
+
+  <label>
+    Background box
+    <select id="bgBox">
+      <option value="off" selected>Off</option>
+      <option value="on">On</option>
+    </select>
+  </label>
+</div>
+
+<div class="row">
+  <label>
+    Background opacity (0–1)
+    <input id="bgAlpha" type="number" min="0" max="1" step="0.05" value="0.35" />
+  </label>
+
+  <label>
+    Shadow
+    <select id="shadow">
+      <option value="on" selected>On</option>
+      <option value="off">Off</option>
+    </select>
+  </label>
+
+  <label>
+    Shadow strength (relative)
+    <input id="shadowPct" type="number" min="0" max="30" step="1" value="8" />
+  </label>
+</div>
+
             </div>
 
             <div class="row">
